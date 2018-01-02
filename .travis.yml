@@ -22,6 +22,10 @@ before_install:
         npm install -g greenkeeper-lockfile@1;
     fi'
 
+install:
+  - npm install
+  - npm install @google-cloud/datastore
+
 before_script:
   - 'if [ "${TRAVIS_NODE_VERSION}" = "8" ]; then
         greenkeeper-lockfile-update;

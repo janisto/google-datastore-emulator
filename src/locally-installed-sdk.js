@@ -1,6 +1,6 @@
 'use strict';
 
-const spawn = require("child_process").spawn;
+const spawn = require('child_process').spawn;
 const kill = require('tree-kill');
 
 const EmulatorStates = require('./emulator-states');
@@ -10,7 +10,7 @@ const BaseEmulator = require('./base-emulator');
  * Wrapper for the locally installed SDK
  */
 class LocallyInstalledSdk extends BaseEmulator{
-  constructor(options) {
+  constructor (options) {
     super(options);
     this._emulator = null;
   }
@@ -19,13 +19,13 @@ class LocallyInstalledSdk extends BaseEmulator{
    * Start the emulator
    * @returns {Promise}
    */
-  start() {
+  start () {
     const self = this;
 
     return new Promise((resolve, reject) => {
 
       if (this._state)
-        throw new Error('Datastore emulator is already running.');
+        reject(new Error('Datastore emulator is already running.'));
 
       super._start(resolve, reject);
 
@@ -33,15 +33,15 @@ class LocallyInstalledSdk extends BaseEmulator{
       self._emulator = spawn('gcloud', params, {shell: true});
 
       self._registerEmulatorListeners();
+      resolve();
     })
-
   }
 
   /**
    * Stop the emulator
    * @returns {Promise}
    */
-  stop() {
+  stop () {
 
     if (this._state !== EmulatorStates.RUNNING)
       return Promise.resolve();
@@ -50,7 +50,7 @@ class LocallyInstalledSdk extends BaseEmulator{
       super._stop(resolve);
 
       kill(this._emulator.pid);
-    })
+    });
   }
 
   /**
@@ -58,8 +58,8 @@ class LocallyInstalledSdk extends BaseEmulator{
    * @param params
    * @protected
    */
-  _setHostPort(params){
-      params.push(`--host-port=${this._options.host}:${this._options.port}`);
+  _setHostPort (params) {
+    params.push(`--host-port=${this._options.host}:${this._options.port}`);
   }
 
   /**
@@ -67,7 +67,7 @@ class LocallyInstalledSdk extends BaseEmulator{
    * @param params
    * @protected
    */
-  _setDatadir(params){
+  _setDatadir (params) {
     if (this._options.dataDir) {
       this._createDataDirSync();
       params.push('--data-dir=' + this._options.dataDir);
@@ -80,13 +80,13 @@ class LocallyInstalledSdk extends BaseEmulator{
    * @param params
    * @protected
    */
-  _setConsistency(params){
+  _setConsistency (params) {
     if (this._options.consistency) {
-      params.push(`--consistency="${this._options.consistency}"`)
+      params.push(`--consistency="${this._options.consistency}"`);
     }
   }
 
-  _registerEmulatorListeners() {
+  _registerEmulatorListeners () {
     this._emulator.stdout.on('data', this._emulatorStdOutListener.bind(this));
 
     this._emulator.stderr.on('data', this._emulatorStdErrListener.bind(this));
@@ -98,7 +98,7 @@ class LocallyInstalledSdk extends BaseEmulator{
     this._emulator.on('error', this._emulatorErrorListener.bind(this));
   }
 
-  _removeEmulatorListeners() {
+  _removeEmulatorListeners () {
     this._emulator.stdout.removeListener('data', this._emulatorStdOutListener.bind(this));
 
     this._emulator.stderr.removeListener('data', this._emulatorStdErrListener.bind(this));
@@ -111,27 +111,27 @@ class LocallyInstalledSdk extends BaseEmulator{
 
   }
 
-  _emulatorStdOutListener(data) {
+  _emulatorStdOutListener (data) {
     this._writeDebug(`stdout: ${data}`);
     this._processStd(data);
   }
 
-  _emulatorStdErrListener(data) {
+  _emulatorStdErrListener (data) {
     this._writeDebug(`stderr: ${data}`);
     this._processStd(data);
   }
 
-  _emulatorCloseListener(code) {
+  _emulatorCloseListener (code) {
     this._writeDebug(`child process close with code ${code}`);
     this._setState(EmulatorStates.CLOSE, code);
   }
 
-  _emulatorExitListener(code) {
+  _emulatorExitListener (code) {
     this._writeDebug(`child process exit with code ${code}`);
     this._setState(EmulatorStates.EXIT, code);
   }
 
-  _emulatorErrorListener(err) {
+  _emulatorErrorListener (err) {
     this._writeDebug(`child process error: ${err}`);
     this._setState(EmulatorStates.ERROR, err);
   }

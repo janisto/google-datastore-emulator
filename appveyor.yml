@@ -34,6 +34,7 @@ install:
   # - docker pull google/cloud-sdk
   # Install npm dependencies
   - npm install
+  - npm install @google-cloud/datastore
 
 # Post-install test scripts.
 test_script:

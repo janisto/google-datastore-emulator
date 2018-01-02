@@ -7,14 +7,14 @@ const path = require('path');
 
 const EmulatorStates = require('./emulator-states');
 
-class DataStoreStateEmitter extends EventEmitter {
+class DataStoreStateEmitter extends EventEmitter{
 }
 
 /**
  * BaseEmulator class. Contains common methods.
  */
-class BaseEmulator {
-  constructor(options) {
+class BaseEmulator{
+  constructor (options) {
     this._state = null;
     this._stateEmitter = new DataStoreStateEmitter();
     this._options = options;
@@ -24,30 +24,33 @@ class BaseEmulator {
    * Start function for all engine. Register all listener to the stateEmitter.
    * @param resolve Promise.resolve callback
    * @param reject Promise.reject callback
-   * @private
+   * @protected
    */
   _start(resolve, reject) {
     const self = this;
 
-    function startSuccessListener() {
-      removeStartListeners();
-      resolve();
-    }
+      function startSuccessListener () {
+        removeStartListeners();
+        resolve();
+      }
 
-    function startRejectListener(error) {
-      removeStartListeners();
-      reject(error);
-    }
+      function startRejectListener (error) {
+        removeStartListeners();
+        if (error)
+          return reject(error);
 
-    function removeStartListeners() {
-      self._stateEmitter.removeListener(EmulatorStates.RUNNING, startSuccessListener.bind(this));
+        resolve();
+      }
 
-      self._stateEmitter.removeListener(EmulatorStates.CLOSE, startRejectListener.bind(this));
-    }
+      function removeStartListeners () {
+        self._stateEmitter.removeListener(EmulatorStates.RUNNING, startSuccessListener.bind(this));
 
-    self._stateEmitter.on(EmulatorStates.RUNNING, startSuccessListener.bind(this));
+        self._stateEmitter.removeListener(EmulatorStates.CLOSE, startRejectListener.bind(this));
+      }
 
-    self._stateEmitter.on(EmulatorStates.CLOSE, startRejectListener.bind(this));
+      self._stateEmitter.on(EmulatorStates.RUNNING, startSuccessListener.bind(this));
+
+      self._stateEmitter.on(EmulatorStates.CLOSE, startRejectListener.bind(this));
   }
 
   /**
@@ -55,12 +58,12 @@ class BaseEmulator {
    * @param resolve Promise.resolve callback
    * @private
    */
-  _stop(resolve) {
+  _stop (resolve, reject) {
     const self = this;
 
     let resolved = false;
 
-    function stopListener() {
+    function stopListener () {
       if (resolved)
         return;
 
@@ -68,10 +71,11 @@ class BaseEmulator {
       removeStopListeners();
       self._removeEmulatorListeners();
       return self._clean()
-        .then(resolve);
+        .then(resolve)
+        .catch(reject);
     }
 
-    function removeStopListeners() {
+    function removeStopListeners () {
       self._stateEmitter.removeListener(EmulatorStates.EXIT, stopListener.bind(this));
 
       self._stateEmitter.removeListener(EmulatorStates.CLOSE, stopListener.bind(this));
@@ -87,7 +91,7 @@ class BaseEmulator {
    * @param data
    * @protected
    */
-  _processStd(data) {
+  _processStd (data) {
     const text = data.toString();
 
     if (text.indexOf(DEV_APP_SERVER_RUNNING_KEY) > -1) {
@@ -101,7 +105,7 @@ class BaseEmulator {
    * @param message
    * @protected
    */
-  _writeDebug(message) {
+  _writeDebug (message) {
     if (!this._options.debug)
       return;
 
@@ -114,7 +118,7 @@ class BaseEmulator {
    * @param params {*}
    * @protected
    */
-  _setState(newState, params) {
+  _setState (newState, params) {
     this._state = newState;
     this._stateEmitter.emit(newState, params);
   }
@@ -125,11 +129,11 @@ class BaseEmulator {
    * - DATASTORE_PROJECT_ID
    * @private
    */
-  _setEnviromentVariables() {
+  _setEnviromentVariables () {
     process.env.DATASTORE_EMULATOR_HOST = `${this._options.host}:${this._options.port}`;
 
     if (!process.env.DATASTORE_PROJECT_ID && this._options.project) {
-      process.env.DATASTORE_PROJECT_ID = this._options.project
+      process.env.DATASTORE_PROJECT_ID = this._options.project;
     }
   }
 
@@ -138,7 +142,7 @@ class BaseEmulator {
    * @returns {string[]}
    * @protected
    */
-  _getCommandParameters() {
+  _getCommandParameters () {
     const params = ['beta', 'emulators', 'datastore', 'start'];
 
     if (this._options.project) {
@@ -154,11 +158,11 @@ class BaseEmulator {
     }
 
     if (!this._options.storeOnDisk) {
-      params.push('--no-store-on-disk')
+      params.push('--no-store-on-disk');
     }
 
     if (this._options.legacy) {
-      params.push('--legacy')
+      params.push('--legacy');
     }
 
     this._setConsistency(params);
@@ -173,7 +177,7 @@ class BaseEmulator {
    * @abstract
    */
   _setHostPort /* istanbul ignore next */ (params) {
-    throw new Error('_setHostPort method must be implement')
+    throw new Error('_setHostPort method must be implement');
   }
 
   /**
@@ -183,7 +187,7 @@ class BaseEmulator {
    * @abstract
    */
   _setDatadir /* istanbul ignore next */ (params) {
-    throw new Error('_setDatadir method must be implement')
+    throw new Error('_setDatadir method must be implement');
   }
 
   /**
@@ -192,8 +196,8 @@ class BaseEmulator {
    * @protected
    * @abstract
    */
-  _setConsistency(params) /* istanbul ignore next */ {
-    throw new Error('_setConsistency method must be implement')
+  _setConsistency (params) /* istanbul ignore next */ {
+    throw new Error('_setConsistency method must be implement');
 
   }
 
@@ -202,7 +206,7 @@ class BaseEmulator {
    * @returns {Promise}
    * @private
    */
-  _clean() {
+  _clean () {
     if (!this._options.clean)
       return Promise.resolve();
 
@@ -216,24 +220,24 @@ class BaseEmulator {
         if (err) return reject(err);
 
         resolve();
-      })
-    })
+      });
+    });
   }
 
   /**
    * Create a dataDir
    * @private
    */
-  _createDataDirSync() {
+  _createDataDirSync () {
     const self = this;
     fse.ensureDir(this._options.dataDir, function (err) {
       /* istanbul ignore if */
       if (err)
-        throw new Error(`Can not create datadir: ${self._options.dataDir}, error: ${err}`)
-    })
+        throw new Error(`Can not create datadir: ${self._options.dataDir}, error: ${err}`);
+    });
   }
 
-  _removeEmulatorListeners() {
+  _removeEmulatorListeners () {
   }
 }
 

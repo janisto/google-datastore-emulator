@@ -10,6 +10,7 @@ const fs = require('fs');
 const fse = require('fs-extra');
 const nodeCleanup = require('node-cleanup');
 const path = require('path');
+const sinon = require('sinon');
 
 chai.use(require("chai-as-promised"));
 
@@ -85,16 +86,12 @@ envDescribe('Docker Container Google DataStore Emulator Test', () => {
   it('should not write to console if debug=false', () => {
     process.env.GCLOUD_PROJECT = 'test';
     let wroteDataStore = false;
-    console.log = function (d) {
-      process.stdout.write(d + '\n');
-
-      if (!d)
-        return;
-
-      if (d.indexOf('[datastore]') > -1) {
+    const stub = sinon.stub(console, 'log').callsFake(() => {
+      if (d.indexOf('[pubsub]') > -1) {
         wroteDataStore = true;
       }
-    };
+      process.stdout.write(d + '\n');
+    });
 
     let options = {
       debug: false,
@@ -108,7 +105,7 @@ envDescribe('Docker Container Google DataStore Emulator Test', () => {
         return emulator.stop();
       })
       .then(() => {
-        delete console.log;
+        stub.restore();
         expect(wroteDataStore).to.be.equal(false);
         process.env.GCLOUD_PROJECT = null;
       })

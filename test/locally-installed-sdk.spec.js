@@ -6,8 +6,9 @@ const Emulator = require('../index');
 const fse = require('fs-extra');
 const nodeCleanup = require('node-cleanup');
 const path = require('path');
+const sinon = require('sinon');
 
-chai.use(require("chai-as-promised"));
+chai.use(require('chai-as-promised'));
 
 const testUtil = require('./test-util');
 
@@ -27,19 +28,22 @@ describe('Locally Installed Google DataStore Emulator Test', () => {
         return done(err);
       });
     else {
-      done()
+      done();
     }
   });
 
   beforeEach(() => {
-    process.env.GCLOUD_PROJECT = null;
+    delete process.env.GCLOUD_PROJECT;
   });
 
-  afterEach(() => {
-    process.env.GCLOUD_PROJECT = null;
+  afterEach((done) => {
+    delete process.env.GCLOUD_PROJECT;
+    setTimeout(() => {
+      done();
+    }, 5000);
   });
 
-  it('should start the emulator with env.GCLOUD_PROJECT', () => {
+  it.only('should start the emulator with env.GCLOUD_PROJECT', () => {
     process.env.GCLOUD_PROJECT = 'test';
 
     let entityKey;
@@ -73,22 +77,18 @@ describe('Locally Installed Google DataStore Emulator Test', () => {
       })
       .then(() => {
         return emulator.stop();
-      })
+      });
   });
 
   it('should not write to console if debug=false', () => {
     process.env.GCLOUD_PROJECT = 'test';
     let wroteDataStore = false;
-    console.log = function (d) {
-      process.stdout.write(d + '\n');
-
-      if (!d)
-        return;
-
-      if (d.indexOf('[datastore]') > -1) {
+    const stub = sinon.stub(console, 'log').callsFake(() => {
+      if (d.indexOf('[pubsub]') > -1) {
         wroteDataStore = true;
       }
-    };
+      process.stdout.write(d + '\n');
+    });
 
     let options = {
       debug: false
@@ -101,10 +101,10 @@ describe('Locally Installed Google DataStore Emulator Test', () => {
         return emulator.stop();
       })
       .then(() => {
-        delete console.log;
+        stub.restore();
         expect(wroteDataStore).to.be.equal(false);
         process.env.GCLOUD_PROJECT = null;
-      })
+      });
 
   });
 
@@ -148,7 +148,7 @@ describe('Locally Installed Google DataStore Emulator Test', () => {
       })
       .then(() => {
         return emulator.stop();
-      })
+      });
   });
 
   it('should start the emulator when set project Id and dataDir', () => {
@@ -202,7 +202,7 @@ describe('Locally Installed Google DataStore Emulator Test', () => {
       })
       .then(() => {
         expect(testUtil.directoryExists(dataDir)).to.be.equal(false);
-      })
+      });
   });
 
   it('should start the emulator with specified host and port', () => {
@@ -241,8 +241,8 @@ describe('Locally Installed Google DataStore Emulator Test', () => {
             expect(result.length).to.be.equal(1);
             const entity = result[0];
             expect(entity).to.be.deep.equal(testData);
-          })
-      })
+          });
+      });
   });
 
   it('should start the emulator on localhost when specified only port', () => {
@@ -282,7 +282,7 @@ describe('Locally Installed Google DataStore Emulator Test', () => {
             expect(entity).to.be.deep.equal(testData);
 
           });
-      })
+      });
   });
 
   it('should not start twice', () => {
@@ -302,7 +302,7 @@ describe('Locally Installed Google DataStore Emulator Test', () => {
         return emulator.stop().then(() => {
           expect(error).to.have.property('message', 'Datastore emulator is already running.');
         });
-      })
+      });
   });
 
   it('should return ok when call stop twice', () => {
@@ -341,8 +341,8 @@ describe('Locally Installed Google DataStore Emulator Test', () => {
         });
 
         process.kill(process.pid);
-      })
-  })
+      });
+  });
 });
 
 describe('Consistency test', () => {
@@ -364,7 +364,7 @@ describe('Consistency test', () => {
           projectId: 'test'
         });
         return true;
-      })
+      });
   });
 
   after(() => {
